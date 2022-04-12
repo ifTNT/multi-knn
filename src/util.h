@@ -1,0 +1,1 @@
+void pthread_perror(const char *prefix, int err);
