@@ -14,14 +14,13 @@
 #define LEN_LINE_BUF 1024
 
 /**
- * parse_col - Parse the columns from file
+ * parse_col - Parse the columns from a line buffer
  * @cols: the pointer to columns. The space need to be assigned first
- * @fp: the file descriptor to parse
+ * @buf: the line buffer containing the original string
  * @n: the maximum number of columns to be parse. 0 indicates MAX_FLD
- * @buf: the buffer to be allocate to read file
  * @return: the numbers of parsed fields
  */
-static size_t parse_col(char** cols, FILE* fp, size_t n, char** buf);
+static size_t parse_col(char** cols, char* buf, size_t n);
 
 /**
  * conv_recd - Convert columns to interger record
@@ -32,31 +31,43 @@ static size_t parse_col(char** cols, FILE* fp, size_t n, char** buf);
 static void conv_recd(recd_t* recd, char** cols, size_t n);
 
 size_t csv_fromfile(csv_t* csv, FILE* fp) {
-  /* The buffer to store one line read from file */
-  char* buf;
-  /* The buffer to store the parsed columns */
-  char** cols = (char**)malloc(sizeof(char*) * MAX_FLD);
-  /* The length of parsed columns */
-  size_t len_cols = 0;
+  size_t len_buf, len_cols;  // The length of line buffer and columns
+  char* buf;                 // The buffer to store one line read from file
+  char** cols;               // The buffer to store the parsed columns
+  struct list_head* cur;     // The pointer to travel through link lists
+  recd_t* new_recd;          // Point to new allocated records
 
-  /** The pointer to travel through link lists */
-  struct list_head* cur;
-  recd_t* new_recd;
-
-  /* Allocate the structure */
-  csv->flds = (char**)malloc(sizeof(char*) * MAX_FLD);
-  INIT_LIST_HEAD(&csv->recds.list);
-  csv->len_fld = 0;
-  csv->len_recd = 0;
-
-  /* Parse the fields */
-  if ((csv->len_fld = parse_col(csv->flds, fp, 0, &buf)) == -1) {
+  /* =================
+   *   Parse Fields
+   * ================= */
+  /* Allocate buffer to parse fields */
+  len_buf = LEN_LINE_BUF;
+  buf = (char*)malloc(sizeof(char) * len_buf);
+  if (getline(&buf, &len_buf, fp) == -1) {
+    free(buf);
     return -1;
   }
+  /* Parse the fields */
+  csv->flds = (char**)malloc(sizeof(char*) * MAX_FLD);
+  csv->len_fld = parse_col(csv->flds, buf, 0);
+
+  /* =================
+   *   Parse Records
+   * ================= */
+  /*
+   * Since previous allocated buffer contains the content of fields.
+   * We need to allocate new buffer to parse records.
+   */
+  len_buf = LEN_LINE_BUF;
+  buf = (char*)malloc(sizeof(char) * len_buf);
+  cols = (char**)malloc(sizeof(char*) * csv->len_fld);
 
   /* Parse the records */
+  csv->len_recd = 0;
+  INIT_LIST_HEAD(&csv->recds.list);
   cur = csv->recds.list.next;
-  while ((len_cols = parse_col(cols, fp, csv->len_fld, &buf)) != -1) {
+  while (getline(&buf, &len_buf, fp) != -1) {
+    len_cols = parse_col(cols, buf, csv->len_fld);
     assert(len_cols == csv->len_fld);
 
     // Allocate new space and convert value from column
@@ -68,38 +79,50 @@ size_t csv_fromfile(csv_t* csv, FILE* fp) {
     list_add(&new_recd->list, cur);
     cur = cur->next;
     csv->len_recd++;
-
-    // Release the line buffer since the values are already stored into
-    // recd_t structure
-    free(buf);
   }
+  /*
+   * Release the buffer since the values are already stored into
+   * recd_t structure
+   */
+  free(buf);
+  free(cols);
+
+  return csv->len_recd;
 }
 
 void csv_free(csv_t* csv) {
-  struct list_head* cur = csv->recds.list.next;
-  while (cur != &csv->recds.list) {
-    __list_del_entry(cur);
-    free(cur);
+  /*
+   * Release the space taken by records
+   */
+  struct list_head *head, *cur;
+  recd_t* cur_recd;
+  head = &csv->recds.list;
+  cur = head->next;
+  while (cur != head) {
     cur = cur->next;
+    cur_recd = container_of(cur->prev, recd_t, list);
+    free(cur_recd->val);
+    free(cur_recd);
+  }
+
+  /*
+   * Release the space taken by fields
+   */
+  if (csv->flds[0] != NULL) {
+    free(csv->flds[0]);
   }
   free(csv->flds);
 }
 
-static size_t parse_col(char** cols, FILE* fp, size_t n, char** buf) {
+static size_t parse_col(char** cols, char* buf, size_t n) {
   const char* delm = ",\r\n";
-  char *_buf = NULL, *col;
-  size_t cnt = 0, len;
+  char* col;
+  size_t cnt = 0;
 
   if (n == 0) n = MAX_FLD;
 
-  // Let getline() to implicit allocate a new buffer
-  if (getline(&_buf, &len, fp) == -1) {
-    return -1;
-  }
-  *buf = _buf;
-
-  // Tokenlize the string that just read
-  col = strtok(_buf, delm);
+  // Tokenlize the line buffer
+  col = strtok(buf, delm);
   while (col != NULL && cnt <= n) {
     *cols++ = col;
     cnt++;

@@ -16,7 +16,7 @@
 /** recd_t - CSV record object */
 typedef struct {
   struct list_head list; /** List API */
-  int* val;              /** Field of this record */
+  int* val;              /** Columns of this record */
 } recd_t;
 
 /** csv_t - CSV object */

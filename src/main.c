@@ -24,12 +24,14 @@ int main(int argc, char* argv[]) {
   while (cur != head) {
     cur_recd = container_of(cur, recd_t, list);
     for (int i = 0; i < my_csv.len_fld; i++) {
-      // printf("%d\t", cur_recd->val[i]);
+      printf("%d\t", cur_recd->val[i]);
     }
-    // printf("\n");
+    printf("\n");
     cur = cur->next;
   }
   printf("Total %d records; %d fields\n", my_csv.len_recd, my_csv.len_fld);
+
+  csv_free(&my_csv);
 
   return EXIT_SUCCESS;
 }
