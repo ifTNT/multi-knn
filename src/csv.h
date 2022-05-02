@@ -6,7 +6,7 @@
 #include "list.h"
 
 /**
- * csv.h - Decoder of Comma-Separated Values (CSV) Files
+ * csv.h - Decoder of Comma-Separated Values (CSV) files
  * Reference: RFC 4180
  */
 

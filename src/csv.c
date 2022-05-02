@@ -1,5 +1,5 @@
 /**
- * csv.c - Decoder implementation of Comma-Separated Values (CSV) Files
+ * csv.c - Decoder implementation of Comma-Separated Values (CSV) files
  * Reference: RFC 4180
  */
 
