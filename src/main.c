@@ -74,24 +74,28 @@ int find_nearest_neighbor_class(int* target, csv_t* dataset, int k) {
 int main(int argc, char* argv[]) {
   FILE *train_fp, *test_fp;
   csv_t train_csv, test_csv;
+  unsigned int k, thread_num = 1;
+
+  if (argc != 3 && argc != 2) {
+    printf("usage: %s K [#Threads]\n", argv[0]);
+    exit(EXIT_FAILURE);
+  }
+  k = atoi(argv[1]);
+  if (argc == 3) {
+    thread_num = atoi(argv[2]);
+  }
+  printf("K=%d, #Threads=%d\n", k, thread_num);
+
   train_fp = fopen("../data/diabetes_train.csv", "r");
   test_fp = fopen("../data/diabetes_test.csv", "r");
   if (!train_fp || !test_fp) exit(EXIT_FAILURE);
   csv_fromfile(&train_csv, train_fp);
   csv_fromfile(&test_csv, test_fp);
-
   printf("Training dataset: %d records; %d fields\n", train_csv.len_recd,
          train_csv.len_fld);
   printf("Testing dataset: %d records; %d fields\n", test_csv.len_recd,
          test_csv.len_fld);
 
-  // /* Print the fields */
-  // for (int i = 0; i < my_csv.len_fld; i++) {
-  //   printf("%s\t", my_csv.flds[i]);
-  // }
-  // printf("\n");
-
-  // /* Print the records */
   struct list_head* head = &test_csv.recds.list;
   struct list_head* cur = head->next;
   recd_t* cur_recd;
@@ -100,7 +104,7 @@ int main(int argc, char* argv[]) {
   while (cur != head) {
     cur_recd = container_of(cur, recd_t, list);
     true_label = cur_recd->val[0];
-    pred_label = find_nearest_neighbor_class(cur_recd->val, &train_csv, 1000);
+    pred_label = find_nearest_neighbor_class(cur_recd->val, &train_csv, k);
     if (true_label == pred_label) {
       correct++;
     } else {
