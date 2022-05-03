@@ -8,7 +8,7 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
 set(CMAKE_CXX_FLAGS_DEBUG_INIT "-g -Wall")
-set(CMAKE_CXX_FLAGS_RELEASE_INIT "-Wall")
+set(CMAKE_CXX_FLAGS_RELEASE_INIT "-Wall -O3 -march=native")
 
 add_executable(${PROJECT_NAME} ${SRC})
 target_link_libraries(${PROJECT_NAME} PRIVATE Threads::Threads)
