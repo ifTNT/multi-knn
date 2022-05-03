@@ -13,8 +13,6 @@
 
 #define MAX_K 1024
 
-typedef int v4si __attribute__((vector_size(16)));
-
 typedef struct dist_class {
   ull dist;
   int class;
@@ -52,10 +50,25 @@ int find_nearest_neighbor_class(int* target, dataset_t* dataset, int k) {
   return max_class;
 }
 
+#define VECTOR_LEN 4
+typedef int v4si __attribute__((vector_size(VECTOR_LEN * sizeof(int))));
 static inline ull dist_euclidean(const int* restrict a, const int* restrict b,
                                  const size_t n) {
-  ull sum = 0, tmp;
-  for (int i = 0; i < n; i++) {
+  v4si va, vb, vs, vss = {0};
+  ull sum, tmp;
+  size_t vec_bound = n - n % VECTOR_LEN;
+
+  // Use vector arithmetic when possible
+  for (int i = 0; i < vec_bound; i += VECTOR_LEN) {
+    va = *(v4si*)(a + i);
+    vb = *(v4si*)(b + i);
+    vs = va - vb;
+    vss += vs * vs;
+  }
+  sum = vss[0] + vss[1] + vss[2] + vss[3];
+
+  // Fallback to scaler for remaining part
+  for (int i = vec_bound; i < n; i++) {
     tmp = a[i] - b[i];
     sum += tmp * tmp;
   }
