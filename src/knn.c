@@ -18,6 +18,8 @@ typedef struct dist_class {
   int class;
 } dist_class_t;
 
+static ull dist_euclidean(const int* restrict a, const int* restrict b,
+                          const size_t n);
 static void insert_neighbor(dist_class_t new_neighbor, dist_class_t* neighbors,
                             int len);
 static int find_most_class(dist_class_t* neighbor, int len);
@@ -46,6 +48,16 @@ int find_nearest_neighbor_class(int* target, dataset_t* dataset, int k) {
   int max_class = find_most_class(neighbor, k);
 
   return max_class;
+}
+
+static inline ull dist_euclidean(const int* restrict a, const int* restrict b,
+                                 const size_t n) {
+  ull sum = 0, tmp;
+  for (int i = 0; i < n; i++) {
+    tmp = a[i] - b[i];
+    sum += tmp * tmp;
+  }
+  return sum;
 }
 
 static inline void insert_neighbor(dist_class_t new_neighbor,
