@@ -5,6 +5,7 @@ Pthread personal project of 2022 EMCSS
 ## Methods
 
 ### Notation
+
 - n: numbers of testing data
 - m: numbers of training data
 - k: numbers of nearest neighbor
@@ -18,14 +19,6 @@ Complexity: $O(nm)$
 
 Complexity: $O(nm/p)$
 
-### C. Single Thread Tree Search (STS)
-
-Complexity: $O(n \cdot lg(m))$
-
-### D. Multithread Tree Search (MTS)
-
-Complexity: $O(\frac{n \cdot lg(m)}{p})$
-
 ## Dependency
 
 - Pthread
@@ -36,14 +29,14 @@ Complexity: $O(\frac{n \cdot lg(m)}{p})$
 ```
 mkdir build
 cd build
-cmake ..
+cmake -DCMAKE_BUILD_TYPE=Release ..
 make
 ```
 
 ## Execute
 
 ```
-./build/knn
+./build/knn <K> <#Threads>
 ```
 
 ## Author
