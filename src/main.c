@@ -19,12 +19,14 @@ struct param {
 };
 
 int read_dataset(dataset_t* dataset, char* file_name);
-void* thread_calc_knn(void* _param);
+void* calc_knn(void* _param);
 void print_accuracy(int* true_label, int* pred_label, int len);
 
 int main(int argc, char* argv[]) {
   dataset_t train_data, test_data;
   unsigned int k, thread_num = 1;
+  struct timespec start, finish;
+  double elapsed;
 
   if (argc != 3 && argc != 2) {
     printf("Usage: %s K [#Threads]\n", argv[0]);
@@ -44,18 +46,17 @@ int main(int argc, char* argv[]) {
          train_data.len_feature);
   printf("Testing dataset: %d records; %d features\n", test_data.len_recd,
          test_data.len_feature);
-
-  struct timespec start, finish;
-  double elapsed;
-
-  clock_gettime(CLOCK_MONOTONIC, &start);
-
   printf("\n");
 
+  // Begin wall-time measurement
+  clock_gettime(CLOCK_MONOTONIC, &start);
+
+  // Prepare shared spaces
   struct param* params =
       (struct param*)malloc(sizeof(struct param) * thread_num);
   pthread_t* thrds = (pthread_t*)malloc(sizeof(pthread_t) * thread_num);
   int* pred_labels = (int*)malloc(sizeof(int) * test_data.len_recd);
+  int err;
 
   // Launch threads
   for (int i = 0; i < thread_num; i++) {
@@ -65,7 +66,10 @@ int main(int argc, char* argv[]) {
     params[i].k = k;
     params[i].job_len = test_data.len_recd / thread_num + 1;
     params[i].job_begin = params[i].job_len * i;
-    pthread_create(&thrds[i], NULL, thread_calc_knn, (void*)&params[i]);
+    err = pthread_create(&thrds[i], NULL, calc_knn, (void*)&params[i]);
+    if (err) {
+      pthread_perror("Error creating thread", err);
+    }
   }
 
   // Wait threads completed
@@ -73,12 +77,11 @@ int main(int argc, char* argv[]) {
     pthread_join(thrds[i], NULL);
   }
 
-  printf("\n");
-
+  // Measure elapsed time
   clock_gettime(CLOCK_MONOTONIC, &finish);
   elapsed = (finish.tv_sec - start.tv_sec);
   elapsed += (finish.tv_nsec - start.tv_nsec) / 1.0E9;
-  printf("Finished. Elapsed: %f seconds\n", elapsed);
+  printf("\nFinished. Elapsed: %f seconds\n", elapsed);
   print_accuracy(test_data.label, pred_labels, test_data.len_recd);
 
   // Cleanup
@@ -103,7 +106,7 @@ int read_dataset(dataset_t* dataset, char* file_name) {
   return 0;
 }
 
-void* thread_calc_knn(void* _param) {
+void* calc_knn(void* _param) {
   struct param* param = (struct param*)_param;
   ull i;
   for (int index = 0; index < param->job_len; index++) {
@@ -113,7 +116,7 @@ void* thread_calc_knn(void* _param) {
         param->test_data->feature[i], param->train_data, param->k);
 
     // Display progress
-    if (i % 100 == 0) {
+    if (index % 100 == 0) {
       fprintf(stderr, "\rProgress: %d %%", index * 100 / param->job_len + 1);
     }
   }
