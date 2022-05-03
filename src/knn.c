@@ -13,6 +13,8 @@
 
 #define MAX_K 1024
 
+typedef int v4si __attribute__((vector_size(16)));
+
 typedef struct dist_class {
   ull dist;
   int class;
@@ -62,9 +64,9 @@ static inline ull dist_euclidean(const int* restrict a, const int* restrict b,
 
 static inline void insert_neighbor(dist_class_t new_neighbor,
                                    dist_class_t* neighbors, int len) {
-  int i = 0;
-  while (new_neighbor.dist < neighbors[i].dist && i < len) {
-    neighbors[i] = neighbors[++i];
+  int i;
+  for (i = 0; new_neighbor.dist < neighbors[i].dist && i < len; i++) {
+    neighbors[i] = neighbors[i + 1];
   }
   if (i != 0) neighbors[i - 1] = new_neighbor;
 }
