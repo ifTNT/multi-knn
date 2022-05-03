@@ -29,7 +29,7 @@ int find_nearest_neighbor_class(int* target, dataset_t* dataset, int k) {
   dist_class_t neighbor[MAX_K];
   for (int i = 0; i < k; i++) {
     neighbor[i].dist = ULONG_MAX;
-    neighbor[i].class = 0;
+    neighbor[i].class = -1;
   }
 
   int cur_label, *cur_feature;
@@ -38,7 +38,7 @@ int find_nearest_neighbor_class(int* target, dataset_t* dataset, int k) {
     cur_feature = dataset->feature[i];
     dist = dist_euclidean(target, cur_feature, dataset->len_feature);
 
-    if (dist < neighbor[k - 1].dist) {
+    if (dist < neighbor[0].dist) {
       insert_neighbor((dist_class_t){dist, cur_label}, neighbor, k);
     }
   }
@@ -48,30 +48,19 @@ int find_nearest_neighbor_class(int* target, dataset_t* dataset, int k) {
   return max_class;
 }
 
-static void insert_neighbor(dist_class_t new_neighbor, dist_class_t* neighbors,
-                            int len) {
-  int i;
-  for (i = len - 1; i > 0; i--) {
-    if (new_neighbor.dist < neighbors[i].dist) {
-      neighbors[i].dist = neighbors[i - 1].dist;
-      neighbors[i].class = neighbors[i - 1].class;
-    } else {
-      neighbors[i + 1].dist = new_neighbor.dist;
-      neighbors[i + 1].class = new_neighbor.class;
-      break;
-    }
+static inline void insert_neighbor(dist_class_t new_neighbor,
+                                   dist_class_t* neighbors, int len) {
+  int i = 0;
+  while (new_neighbor.dist < neighbors[i].dist && i < len) {
+    neighbors[i] = neighbors[++i];
   }
-
-  // Handle corner case
-  if (i == 0 && new_neighbor.dist < neighbors[0].dist) {
-    neighbors[0].dist = new_neighbor.dist;
-    neighbors[0].class = new_neighbor.class;
-  }
+  if (i != 0) neighbors[i - 1] = new_neighbor;
 }
 
-static int find_most_class(dist_class_t* neighbor, int len) {
+static inline int find_most_class(dist_class_t* neighbor, int len) {
   int scoreboard[NUM_CLASS] = {0};
   for (int i = 0; i < len; i++) {
+    if (neighbor[i].class == -1) continue;
     scoreboard[neighbor[i].class]++;
   }
 

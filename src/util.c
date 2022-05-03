@@ -10,9 +10,10 @@ void pthread_perror(const char *prefix, int err) {
 
 ull dist_euclidean(const int *restrict a, const int *restrict b,
                    const size_t n) {
-  ull sum = 0;
+  ull sum = 0, tmp;
   for (int i = 0; i < n; i++) {
-    sum += (a[i] - b[i]) * (a[i] - b[i]);
+    tmp = a[i] - b[i];
+    sum += tmp * tmp;
   }
   return sum;
 }
